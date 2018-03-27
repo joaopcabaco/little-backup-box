@@ -31,6 +31,10 @@ def remote_control():
     if (request.POST.get("devicebackup")):
         os.system("sudo /home/pi/little-backup-box/scripts/device-backup.sh")
         return ('Transfer started. You can close this page.')
+    if (request.POST.get("remotebackup")):
+        remote = request.forms.get("remoteshare")
+        os.system("sudo rsync -avz -e ssh /home/pi/little-backup-box/BACKUP/ "+remote)
+        return ('Remote backup started. You can close this page.')
     if (request.POST.get("shutdown")):
         os.system("sudo shutdown -h now")
         return ('Shutdown request sent. You can close this page.')
