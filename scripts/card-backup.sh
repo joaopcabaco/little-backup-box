@@ -19,11 +19,18 @@
 
 # Specify devices and their mount points
 # and other settings
-STORAGE_DEV="sda1" # Name of the storage device
-STORAGE_MOUNT_POINT="/media/storage" # Mount point of the storage device
+
+
+STORAGE_DEV1="sda1" # Name of the storage device
+STORAGE_MOUNT_POINT1="/media/storage" # Mount point of the storage device
+STORAGE_DEV2="sda2" # Name of the storage device
+STORAGE_MOUNT_POINT2="/media/storage" # Mount point of the storage device
 CARD_DEV="sdb1" # Name of the storage card
 CARD_MOUNT_POINT="/media/card" # Mount point of the storage card
-SHUTD="5" # Minutes to wait before shutdown due to inactivity
+SHUTD="10" # Minutes to wait before shutdown due to inactivity
+
+
+
 
 # Set the ACT LED to heartbeat
 sudo sh -c "echo heartbeat > /sys/class/leds/led0/trigger"
@@ -31,16 +38,38 @@ sudo sh -c "echo heartbeat > /sys/class/leds/led0/trigger"
 # Shutdown after a specified period of time (in minutes) if no device is connected.
 sudo shutdown -h $SHUTD "Shutdown is activated. To cancel: sudo shutdown -c"
 
-# Wait for a USB storage device (e.g., a USB flash drive)
-STORAGE=$(ls /dev/* | grep "$STORAGE_DEV" | cut -d"/" -f3)
+
+
+
+
+# Wait for a USB storage device (e.g., a USB flash drive - STORAGE_DEV1)
+STORAGE=$(ls /dev/* | grep "$STORAGE_DEV1" | cut -d"/" -f3)
 while [ -z "${STORAGE}" ]
   do
   sleep 1
-  STORAGE=$(ls /dev/* | grep "$STORAGE_DEV" | cut -d"/" -f3)
+  STORAGE=$(ls /dev/* | grep "$STORAGE_DEV1" | cut -d"/" -f3)
 done
 
-# When the USB storage device is detected, mount it
-mount /dev/"$STORAGE_DEV" "$STORAGE_MOUNT_POINT"
+# When the USB storage device is detected, mount it - STORAGE_DEV1
+mount /dev/"$STORAGE_DEV1" "$STORAGE_MOUNT_POINT1"
+
+
+
+# Wait for a USB storage device (e.g., a USB flash drive - STORAGE_DEV2)
+STORAGE2=$(ls /dev/* | grep "$STORAGE_DEV2" | cut -d"/" -f3)
+while [ -z "${STORAGE2}" ]
+  do
+  sleep 1
+  STORAGE2=$(ls /dev/* | grep "$STORAGE_DEV2" | cut -d"/" -f3)
+done
+
+# When the USB storage device is detected, mount it - STORAGE_DEV2
+mount /dev/"$STORAGE_DEV2" "$STORAGE_MOUNT_POINT2"
+
+
+
+
+
 
 # Cancel shutdown
 sudo shutdown -c
@@ -48,6 +77,9 @@ sudo shutdown -c
 # Set the ACT LED to blink at 1000ms to indicate that the storage device has been mounted
 sudo sh -c "echo timer > /sys/class/leds/led0/trigger"
 sudo sh -c "echo 1000 > /sys/class/leds/led0/delay_on"
+
+
+
 
 # Wait for a card reader or a camera
 CARD_READER=$(ls /dev/* | grep "$CARD_DEV" | cut -d"/" -f3)
@@ -57,10 +89,14 @@ until [ ! -z "$CARD_READER" ]
   CARD_READER=$(ls /dev/sd* | grep "$CARD_DEV" | cut -d"/" -f3)
 done
 
+
+
+
+
 # If the card reader is detected, mount it and obtain its UUID
 if [ ! -z "$CARD_READER" ]; then
   mount /dev"/$CARD_DEV" "$CARD_MOUNT_POINT"
-  # # Set the ACT LED to blink at 500ms to indicate that the card has been mounted
+  # Set the ACT LED to blink at 500ms to indicate that the card has been mounted
   sudo sh -c "echo 500 > /sys/class/leds/led0/delay_on"
 
   # Create  a .id random identifier file if doesn't exist
@@ -73,11 +109,51 @@ if [ ! -z "$CARD_READER" ]; then
   ID="${ID_FILE%.*}"
   cd
 
-  # Set the backup path
-  BACKUP_PATH="$STORAGE_MOUNT_POINT"/"$ID"
+  
+  
+  
+  # Set the backup path - STORAGE_DEV1
+  BACKUP_PATH="$STORAGE_MOUNT_POINT1"/"$ID"
   
   # Perform backup using rsync
   rsync -ah --exclude "*.id" "$CARD_MOUNT_POINT"/ "$BACKUP_PATH"
+  
+  
+  
+  # Set the backup path - STORAGE_DEV1
+  BACKUP_PATH2="$STORAGE_MOUNT_POINT2"/"$ID"
+  
+  # Perform backup using rsync
+  rsync -ah --exclude "*.id" "$CARD_MOUNT_POINT"/ "$BACKUP_PATH2"
+  
+  #Test Internet Connection
+  wget -q --spider http://google.com
+
+  #Internet ON
+  if [ $? -eq 0 ]; then
+	
+	USERNAME="username"
+	PASSWORD="password"
+	SERVER="hostname or ip here"
+	
+	# Directory where file is located
+	DIR="/some/directory"
+	
+	#  Filename of backup file to be transfered
+	FILE="filename"
+	
+	# login to ftp server and transfer file
+	cd $DIR
+	ftp -n -i $SERVER <<EOF
+	user $USERNAME $PASSWORD
+	binary
+	mput $FILE
+	quit
+	EOF
+	
+  fi
+  
+  
 
   # Turn off the ACT LED to indicate that the backup is completed
   sudo sh -c "echo 0 > /sys/class/leds/led0/brightness"
